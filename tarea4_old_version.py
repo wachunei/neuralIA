@@ -12,7 +12,7 @@ import time
 from multilayer_perceptron.multilayer_perceptron import MultilayerPerceptronClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 
-def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, ticks=None):
+def plot_confusion_matrix(cm, title='Confusion matrix', no_code=True, cmap=plt.cm.Blues, ticks=None):
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.ylabel('True label')
@@ -95,76 +95,49 @@ def generate_matrix(categories, set_type='Train', no_code=False):
 
     return (all_data_array,all_categories_array)
 
-def getResults(iters, hidden_layer_size, not_coded):
+if __name__ == '__main__':
     categories = ['Auditorium', 'bar', 'classroom', 'closet', 'movietheater',
         'restaurant', 'other']
 
-    no_code = not_coded
+    no_code = False
 
     data_train, category_train = generate_matrix(categories, 'Train', no_code)
     data_test, category_test = generate_matrix(categories, 'Test', no_code = True)
 
     perceptron = MultilayerPerceptronClassifier( \
-          hidden_layer_sizes = (hidden_layer_size,), \
-          max_iter = iters, \
+          hidden_layer_sizes = (12,), \
+          max_iter = 1000, \
+        #   random_state = 123,
           algorithm = 'sgd',
           batch_size = 200,
           shuffle = True,
           alpha = 0.00002,\
-          learning_rate_init = 0.0001,
-          verbose=False)
+          learning_rate_init = 0.0001, )
+        #   verbose = True,)
 
-    perceptron_model = perceptron.fit(data_train, category_train)
-    category_predicted = perceptron_model.predict(data_test)
-    # Probamos en el set de entrenamiento para medir sobreajuste
-    category_predicted_train = perceptron_model.predict(data_train)
+    category_predicted = perceptron.fit(data_train, category_train).predict(data_test)
     if not no_code:
         category_predicted = matrix_category_decode(category_predicted)
-        category_predicted_train = matrix_category_decode(category_predicted_train)
-        category_train = matrix_category_decode(category_train)
+
 
     accuracy = accuracy_score(category_test, category_predicted)
-    accuracy_train = accuracy_score(category_train, category_predicted_train)
-
     cm = confusion_matrix(category_test, category_predicted, categories)
-    cm_train = confusion_matrix(category_train, category_predicted_train, categories)
+
+    # cm_title = 'Confusion matrix, without normalization ('+selected_set_name+', '+perceptr_name+')'
+    # print(cm_title)
+    # print(cm)
+    # plt.figure()
+    # plot_confusion_matrix(cm, cm_title, ticks=tuple(actions))
 
     cm_normalized = normalize_matrix(cm)
-    cm_train_normalized = normalize_matrix(cm_train)
 
     coded_title = 'String coded' if no_code else 'List coded'
-    coded_name = 'no_coded' if no_code else 'coded'
     outputs = perceptron.n_outputs_
-    cm_normalized_title_base = coded_title + ' outputs: ' +str(outputs)
-    cm_normalized_title = cm_normalized_title_base + ' Acc. sobre test: '+str(accuracy)
-    cm_train_normalized_title = cm_normalized_title_base +' Acc. sobre train '+str(accuracy_train)
-
+    cm_normalized_title = coded_title + ' outputs: ' +str(outputs) +' acc: '+str(accuracy)
     plt.figure()
-    plot_confusion_matrix(cm_normalized, cm_normalized_title, ticks=(categories))
+    plot_confusion_matrix(cm_normalized, cm_normalized_title, no_code, ticks=(categories))
 
-    print 'Accuracy test: ' + str(accuracy)
+    print 'Accuracy: ' + str(accuracy)
 
-    variable_names = str(iters)+"_"+str(hidden_layer_size)+"_"+str(coded_name)
-
-    plt.savefig('cm_'+variable_names+'_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
+    plt.savefig('cm_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
     plt.close()
-
-    plt.figure()
-    plot_confusion_matrix(cm_train_normalized, cm_train_normalized_title, ticks=(categories))
-
-    print 'Accuracy train: ' + str(accuracy_train)
-
-    plt.savefig('cm_train_'+variable_names+'_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
-    plt.close()
-
-    with open("results.csv", "a") as myfile:
-        myfile.write(str(iters)+","+str(hidden_layer_size)+","+coded_name+","+str(accuracy)+","+str(accuracy_train)+"\n")
-
-if __name__ == '__main__':
-    iters = [125, 250, 375, 500, 625, 750, 875, 1000]
-    layer_sizes = [6, 10, 14, 18, 22, 26, 30, 34, 38, 42]
-    no_coded = [True, False]
-    for iteration in iters:
-        for layer_size in layer_sizes:
-            for val in no_coded:
-                getResults(iteration,layer_size,val)
