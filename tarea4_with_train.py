@@ -95,24 +95,24 @@ def generate_matrix(categories, set_type='Train', no_code=False):
 
     return (all_data_array,all_categories_array)
 
-if __name__ == '__main__':
+def getResults(iters, hidden_layer_size, not_coded):
     categories = ['Auditorium', 'bar', 'classroom', 'closet', 'movietheater',
         'restaurant', 'other']
 
-    no_code = False
+    no_code = not_coded
 
     data_train, category_train = generate_matrix(categories, 'Train', no_code)
     data_test, category_test = generate_matrix(categories, 'Test', no_code = True)
 
     perceptron = MultilayerPerceptronClassifier( \
-          hidden_layer_sizes = (12,), \
-          max_iter = 500, \
+          hidden_layer_sizes = (hidden_layer_size,), \
+          max_iter = iters, \
           algorithm = 'sgd',
           batch_size = 200,
           shuffle = True,
           alpha = 0.00002,\
           learning_rate_init = 0.0001,
-          verbose=True)        
+          verbose=False)
 
     perceptron_model = perceptron.fit(data_train, category_train)
     category_predicted = perceptron_model.predict(data_test)
@@ -126,15 +126,16 @@ if __name__ == '__main__':
     accuracy = accuracy_score(category_test, category_predicted)
     accuracy_train = accuracy_score(category_train, category_predicted_train)
 
-    cm = confusion_matrix(category_test, category_predicted, categories)    
+    cm = confusion_matrix(category_test, category_predicted, categories)
     cm_train = confusion_matrix(category_train, category_predicted_train, categories)
 
     cm_normalized = normalize_matrix(cm)
     cm_train_normalized = normalize_matrix(cm_train)
 
     coded_title = 'String coded' if no_code else 'List coded'
+    coded_name = 'no_coded' if no_code else 'coded'
     outputs = perceptron.n_outputs_
-    cm_normalized_title_base = coded_title + ' outputs: ' +str(outputs) 
+    cm_normalized_title_base = coded_title + ' outputs: ' +str(outputs)
     cm_normalized_title = cm_normalized_title_base + ' Acc. sobre test: '+str(accuracy)
     cm_train_normalized_title = cm_normalized_title_base +' Acc. sobre train '+str(accuracy_train)
 
@@ -143,7 +144,9 @@ if __name__ == '__main__':
 
     print 'Accuracy test: ' + str(accuracy)
 
-    plt.savefig('cm_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
+    variable_names = str(iters)+"_"+str(hidden_layer_size)+"_"+str(coded_name)
+
+    plt.savefig('/Users/wachunei/Dropbox/resultadosneuralia/cm_'+variable_names+'_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
     plt.close()
 
     plt.figure()
@@ -151,5 +154,17 @@ if __name__ == '__main__':
 
     print 'Accuracy train: ' + str(accuracy_train)
 
-    plt.savefig('cm_train_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
+    plt.savefig('/Users/wachunei/Dropbox/resultadosneuralia/cm_train_'+variable_names+'_'+coded_title.lower().replace(" ", "_")+'_'+str(time.time()).replace('.','')+'.png', bbox_inches='tight')
     plt.close()
+
+    with open("/Users/wachunei/Dropbox/resultadosneuralia/results.csv", "a") as myfile:
+        myfile.write(str(iters)+","+str(hidden_layer_size)+","+coded_name+","+str(accuracy)+","+str(accuracy_train)+"\n")
+
+if __name__ == '__main__':
+    iters = [125, 250, 375, 500, 625, 750, 875, 1000]
+    layer_sizes = [6, 10, 14, 18, 22, 26, 30, 34, 38, 42]
+    no_coded = [True, False]
+    for iteration in iters:
+        for layer_size in layer_sizes:
+            for val in no_coded:
+                getResults(iteration,layer_size,val)
